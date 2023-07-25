@@ -1,0 +1,19 @@
+name: auto-tags
+description: Automaticlly increase your version according to your changes
+author: tklein1801
+branding:
+  icon: 'tag'
+  color: 'black'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+inputs:
+  dry_run:
+    description: If you want to test the results and dont wanna post the results
+    required: false
+    default: false
+outputs:
+  tagname:
+    description: Fully assembled tag-name
+  version:
+    description: Raw version

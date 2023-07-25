@@ -1,0 +1,22 @@
+name: Test Action
+
+on:
+  push:
+
+jobs:
+  execute_action:
+    name: Create Tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Tagging
+        id: tagging
+        uses: tklein1801/auto-tags@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        with:
+          dry_run: true
+      - name: Result
+        run: |
+          echo "Version: ${{ steps.tagging.outputs.version }}"
+          echo "Tag: ${{ steps.tagging.outputs.tagname }}"

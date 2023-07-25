@@ -1,0 +1,26 @@
+{
+  "name": "auto-tags",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/main.js",
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "npm run clean && tsc",
+    "start": "node lib/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "tklein1801",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.4.5",
+    "husky": "^8.0.3",
+    "rimraf": "^5.0.1"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "typescript": "^5.1.6",
+    "@actions/github": "^5.1.1"
+  }
+}
