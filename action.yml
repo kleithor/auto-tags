@@ -8,6 +8,10 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
 inputs:
+  package_root:
+    description: Programm will look there for the package.json
+    required: false
+    default: './'
   dry_run:
     description: If you want to test the results and dont wanna post the results
     required: false

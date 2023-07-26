@@ -71,11 +71,16 @@ async function run() {
     tags = [];
   }
 
-  let currentVersion = '0.0.0'; // fallback version, if there isn't a tag for a previous version
+  const pkg_root = core.getInput('package_root', { required: false });
+  const pkgfile = path.join(GITHUB_WORKSPACE, pkg_root, 'package.json');
+  const pkg = fs.existsSync(pkgfile) ? require(pkgfile) : null;
+  core.debug(`Detected package.json version ${pkg.version}`);
+
+  let currentVersion = pkg.version || '0.0.0'; // fallback version, if there isn't a tag for a previous version
   let latestTag: (typeof tags)[0] | null = null;
-  if (tags.length > 0) {
+  if (!pkg.version && tags.length > 0) {
     latestTag = tags[0];
-    core.debug(`Detected current version ${currentVersion}`);
+    core.debug(`Detected current version (based on tags) ${currentVersion}`);
     currentVersion = latestTag.name.toLowerCase().startsWith('v')
       ? latestTag.name.substring(1)
       : latestTag.name;
