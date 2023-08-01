@@ -108,6 +108,31 @@ async function run() {
   core.debug(`New tag ${newTagName}`);
 
   const isDryRunEnabled = core.getBooleanInput('dry_run');
+  const updatePackageFiles = () => {
+    if (pkg) {
+      pkg.version = nextVersion;
+      if (!isDryRunEnabled) {
+        fs.writeFileSync(pkgfile, JSON.stringify(pkg, null, 2));
+        core.warning(`Updated package.json version to ${nextVersion}`);
+      } else {
+        core.debug(`Updated package.json version to ${nextVersion}`);
+      }
+
+      const pkgLockfile = path.join(GITHUB_WORKSPACE, pkg_root, 'package-lock.json');
+      const pkgLock = fs.existsSync(pkgLockfile) ? require(pkgLockfile) : null;
+      if (pkgLock) {
+        pkgLock.version = nextVersion;
+        pkgLock.packages[''].version = nextVersion;
+        if (!isDryRunEnabled) {
+          fs.writeFileSync(pkgLockfile, JSON.stringify(pkgLock, null, 2));
+          core.warning(`Updated package-lock.json version to ${nextVersion}`);
+        } else {
+          core.debug(`Updated package-lock.json version to ${nextVersion}`);
+        }
+      }
+    }
+  };
+
   if (!isDryRunEnabled) {
     try {
       const GITHUB_SHA = process.env.GITHUB_SHA;
@@ -133,6 +158,21 @@ async function run() {
         sha: createdTag.data.sha,
       });
       core.warning(`Reference ${createdRef.data.ref} available at ${createdRef.data.url}` + os.EOL);
+
+      if (pkg) {
+        pkg.version = nextVersion;
+        fs.writeFileSync(pkgfile, JSON.stringify(pkg, null, 2));
+        core.warning(`Updated package.json version to ${nextVersion}`);
+
+        const pkgLockfile = path.join(GITHUB_WORKSPACE, pkg_root, 'package-lock.json');
+        const pkgLock = fs.existsSync(pkgLockfile) ? require(pkgLockfile) : null;
+        if (pkgLock) {
+          pkgLock.version = nextVersion;
+          pkgLock.packages[''].version = nextVersion;
+          fs.writeFileSync(pkgLockfile, JSON.stringify(pkgLock, null, 2));
+          core.warning(`Updated package-lock.json version to ${nextVersion}`);
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : `${e}`;
       core.warning('Failed to generate changelog from commits: ' + msg + os.EOL);
