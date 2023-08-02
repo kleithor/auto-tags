@@ -46,8 +46,6 @@ async function run() {
   // Get owner and repo from context of payload that triggered the action
   const { owner, repo } = context.repo;
 
-  // Get previous version (without v) based on previous tags
-
   let tags: {
     name: string;
     commit: {
@@ -107,32 +105,16 @@ async function run() {
   core.debug(`Detected next version ${nextVersion}`);
   core.debug(`New tag ${newTagName}`);
 
-  const isDryRunEnabled = core.getBooleanInput('dry_run');
-  const updatePackageFiles = () => {
-    if (pkg) {
-      pkg.version = nextVersion;
-      if (!isDryRunEnabled) {
-        fs.writeFileSync(pkgfile, JSON.stringify(pkg, null, 2));
-        core.warning(`Updated package.json version to ${nextVersion}`);
-      } else {
-        core.debug(`Updated package.json version to ${nextVersion}`);
-      }
-
-      const pkgLockfile = path.join(GITHUB_WORKSPACE, pkg_root, 'package-lock.json');
-      const pkgLock = fs.existsSync(pkgLockfile) ? require(pkgLockfile) : null;
-      if (pkgLock) {
-        pkgLock.version = nextVersion;
-        pkgLock.packages[''].version = nextVersion;
-        if (!isDryRunEnabled) {
-          fs.writeFileSync(pkgLockfile, JSON.stringify(pkgLock, null, 2));
-          core.warning(`Updated package-lock.json version to ${nextVersion}`);
-        } else {
-          core.debug(`Updated package-lock.json version to ${nextVersion}`);
-        }
-      }
+  // Check for existance of tag and abort (short circuit) if it already exists.
+  for (let tag of tags) {
+    if (tag.name === newTagName) {
+      core.setFailed(`"${tag.name.trim()}" tag already exists.` + os.EOL);
+      return;
     }
-  };
+  }
 
+  const isDryRunEnabled = core.getBooleanInput('dry_run');
+  const shouldUpdateVersionFiles = core.getBooleanInput('update_version_files');
   if (!isDryRunEnabled) {
     try {
       const GITHUB_SHA = process.env.GITHUB_SHA;
@@ -159,7 +141,7 @@ async function run() {
       });
       core.warning(`Reference ${createdRef.data.ref} available at ${createdRef.data.url}` + os.EOL);
 
-      if (pkg) {
+      if (pkg && shouldUpdateVersionFiles) {
         pkg.version = nextVersion;
         fs.writeFileSync(pkgfile, JSON.stringify(pkg, null, 2));
         core.warning(`Updated package.json version to ${nextVersion}`);
@@ -172,6 +154,77 @@ async function run() {
           fs.writeFileSync(pkgLockfile, JSON.stringify(pkgLock, null, 2));
           core.warning(`Updated package-lock.json version to ${nextVersion}`);
         }
+
+        // Commit file changes
+        const newTreeFiles = [
+          {
+            mode: '100644',
+            type: 'blob',
+            content: JSON.stringify(pkgLock, null, 2),
+            path: pkgfile.replace(GITHUB_WORKSPACE + '/', ''),
+          },
+        ] as any[];
+        if (pkgLockfile) {
+          newTreeFiles.push({
+            mode: '100644',
+            type: 'blob',
+            content: JSON.stringify(pkgLock, null, 2),
+            path: pkgLockfile.replace(GITHUB_WORKSPACE + '/', ''),
+          });
+        }
+
+        // MAGIC
+        const baseTree = (
+          await github.rest.git.getCommit({
+            owner,
+            repo,
+            commit_sha: context.sha,
+          })
+        ).data.tree.sha;
+        const previousTree = (
+          await github.rest.git.getTree({
+            owner,
+            repo,
+            tree_sha: baseTree,
+            recursive: 'true',
+          })
+        ).data.tree;
+
+        for (const file of previousTree) {
+          if (
+            file.path !== pkgfile.replace(GITHUB_WORKSPACE + '/', '') &&
+            file.path !== pkgLockfile.replace(GITHUB_WORKSPACE + '/', '')
+          ) {
+            newTreeFiles.push(file);
+          }
+        }
+
+        const newTree = await github.rest.git.createTree({
+          owner,
+          repo,
+          tree: newTreeFiles,
+          base_tree: baseTree,
+        });
+
+        const commit = await github.rest.git.createCommit({
+          owner,
+          repo,
+          message: `chore(release): ${buildTagName(nextVersion)}`,
+          tree: newTree.data.sha,
+          parents: [context.sha],
+          author: {
+            name: 'auto-tags',
+            email: 'noreply@auto-tags',
+          },
+        });
+
+        const updatedRef = await github.rest.git.updateRef({
+          owner,
+          repo,
+          ref: `heads/${context.ref.split('/').pop()}`,
+          sha: commit.data.sha,
+          force: true,
+        });
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : `${e}`;
