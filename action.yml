@@ -16,10 +16,10 @@ inputs:
     description: If you want to test the results and dont wanna post the results
     required: false
     default: false
-  update_version_files:
-    description: If you want to automaticly update the package.json & package-lock.json
-    required: false
-    default: false
+  # update_version_files:
+  #   description: If you want to automaticly update the package.json & package-lock.json
+  #   required: false
+  #   default: false
 outputs:
   tagname:
     description: Fully assembled tag-name
