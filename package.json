@@ -2,11 +2,11 @@
   "name": "auto-tags",
   "version": "1.0.0",
   "description": "",
-  "main": "lib/main.js",
+  "main": "lib/src/main.js",
   "scripts": {
     "clean": "rimraf lib",
     "build": "npm test && npm run clean && tsc",
-    "start": "node lib/main.js",
+    "start": "node lib/src/main.js",
     "test": "jest --passWithNoTests",
     "prepare": "husky install"
   },

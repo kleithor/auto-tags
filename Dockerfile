@@ -10,7 +10,7 @@ COPY package.json package-lock.json /auto-tags/
 RUN cd /auto-tags && npm install
 
 COPY --from=builder /app/lib /auto-tags/lib/
-RUN chmod +x /auto-tags/lib/main.js
+RUN chmod +x /auto-tags/lib/src/main.js
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
