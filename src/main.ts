@@ -9,11 +9,11 @@ run();
 
 export type ReleaseType = 'major' | 'minor' | 'patch';
 
-const TagPrefix = 'v';
-const GITHUB_WORKSPACE = process.env.GITHUB_WORKSPACE;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
-
 async function run() {
+  const TagPrefix = 'v';
+  const GITHUB_WORKSPACE = process.env.GITHUB_WORKSPACE;
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+
   core.debug(
     ` Available environment variables:\n -> ${Object.keys(process.env)
       .map((i) => i + ' :: ' + process.env[i])
